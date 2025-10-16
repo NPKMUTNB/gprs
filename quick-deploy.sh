@@ -22,7 +22,7 @@ APP_ENV=production
 APP_KEY=
 APP_DEBUG=false
 APP_TIMEZONE=Asia/Bangkok
-APP_URL=http://139.59.244.163
+APP_URL=http://localhost
 
 APP_LOCALE=en
 APP_FALLBACK_LOCALE=en

@@ -24,17 +24,19 @@ README.md
 Thumbs.db
 
 # Node
-node_modules
+node_modules/
 npm-debug.log
 yarn-error.log
+package-lock.json
 
 # Laravel
-/vendor
+vendor/
 /storage/*.key
 /storage/logs/*
 !/storage/logs/.gitkeep
 /bootstrap/cache/*
 !/bootstrap/cache/.gitkeep
+composer.lock
 
 # Environment
 .env

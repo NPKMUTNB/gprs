@@ -1,23 +1,25 @@
+version: '3.8'
+
 services:
-  # Laravel Application
+  # Laravel Application (Development)
   app:
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: student-project-repository
+    container_name: student-project-repository-dev
     restart: unless-stopped
     ports:
-      - "80:80"
+      - "8000:80"
     volumes:
-      - ./storage:/var/www/html/storage
-      - ./database:/var/www/html/database
-      - ./.env:/var/www/html/.env:ro
+      - .:/var/www/html
+      - /var/www/html/vendor
+      - /var/www/html/node_modules
     environment:
       - APP_NAME=StudentProjectRepository
-      - APP_ENV=production
+      - APP_ENV=local
       - APP_KEY=${APP_KEY}
-      - APP_DEBUG=false
-      - APP_URL=http://139.59.244.163
+      - APP_DEBUG=true
+      - APP_URL=http://localhost:8000
       - DB_CONNECTION=sqlite
       - DB_DATABASE=/var/www/html/database/database.sqlite
       - SESSION_DRIVER=file
@@ -28,10 +30,10 @@ services:
     depends_on:
       - redis
 
-  # Redis for caching (optional but recommended)
+  # Redis for caching
   redis:
     image: redis:alpine
-    container_name: student-project-redis
+    container_name: student-project-redis-dev
     restart: unless-stopped
     ports:
       - "6379:6379"
@@ -41,7 +43,3 @@ services:
 networks:
   app-network:
     driver: bridge
-
-volumes:
-  storage-data:
-  database-data:

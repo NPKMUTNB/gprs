@@ -45,19 +45,43 @@ RUN sed -ri -e 's!/var/www/!${APACHE_DOCUMENT_ROOT}!g' /etc/apache2/apache2.conf
 RUN chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache
 RUN chmod -R 775 /var/www/html/storage /var/www/html/bootstrap/cache
 
-# Install composer dependencies
-RUN composer install --no-interaction --optimize-autoloader --no-dev
-
-# Install npm dependencies and build assets
-RUN npm install && npm run build
-
-# Create SQLite database file
-RUN touch /var/www/html/database/database.sqlite
-RUN chown www-data:www-data /var/www/html/database/database.sqlite
-RUN chmod 664 /var/www/html/database/database.sqlite
+# Create SQLite database directory
+RUN mkdir -p /var/www/html/database
 
 # Expose port 80
 EXPOSE 80
 
-# Start Apache
-CMD ["apache2-foreground"]
+# Create entrypoint script
+RUN echo '#!/bin/bash\n\
+set -e\n\
+\n\
+echo "Installing Composer dependencies..."\n\
+composer install --no-interaction --optimize-autoloader --no-dev\n\
+\n\
+echo "Installing NPM dependencies..."\n\
+npm ci --production\n\
+\n\
+echo "Building assets..."\n\
+npm run build\n\
+\n\
+echo "Setting up database..."\n\
+touch /var/www/html/database/database.sqlite\n\
+chmod 664 /var/www/html/database/database.sqlite\n\
+chown www-data:www-data /var/www/html/database/database.sqlite\n\
+\n\
+echo "Creating storage link..."\n\
+php artisan storage:link || true\n\
+\n\
+echo "Caching configuration..."\n\
+php artisan config:cache\n\
+php artisan route:cache\n\
+php artisan view:cache\n\
+\n\
+echo "Starting Apache..."\n\
+exec apache2-foreground\n\
+' > /usr/local/bin/docker-entrypoint.sh
+
+RUN chmod +x /usr/local/bin/docker-entrypoint.sh
+
+# Start with entrypoint
+ENTRYPOINT ["/usr/local/bin/docker-entrypoint.sh"]

@@ -42,30 +42,63 @@ echo ""
 echo "🛑 Stopping existing containers..."
 docker-compose down
 
-# Copy production environment file
+# Create .env file
 if [ ! -f .env ]; then
-    echo "📝 Creating .env file from .env.production..."
-    cp .env.production .env
-    echo "✅ .env file created"
-else
-    echo "⚠️  .env file already exists"
-    read -p "Do you want to overwrite with .env.production? (y/n) " -n 1 -r
-    echo
-    if [[ $REPLY =~ ^[Yy]$ ]]; then
+    echo "📝 Creating .env file..."
+    
+    # Check if .env.production exists
+    if [ -f .env.production ]; then
         cp .env.production .env
-        echo "✅ .env file updated"
+        echo "✅ .env file created from .env.production"
+    elif [ -f .env.example ]; then
+        cp .env.example .env
+        echo "✅ .env file created from .env.example"
+    else
+        # Create minimal .env file
+        cat > .env << 'EOF'
+APP_NAME="Student Project Repository"
+APP_ENV=production
+APP_KEY=
+APP_DEBUG=false
+APP_TIMEZONE=Asia/Bangkok
+APP_URL=http://139.59.244.163
+
+DB_CONNECTION=sqlite
+DB_DATABASE=/var/www/html/database/database.sqlite
+
+SESSION_DRIVER=file
+CACHE_DRIVER=file
+QUEUE_CONNECTION=sync
+
+LOG_CHANNEL=stack
+LOG_LEVEL=error
+EOF
+        echo "✅ .env file created with default values"
     fi
+else
+    echo "ℹ️  .env file already exists"
 fi
 
 # Generate APP_KEY if not set
-if ! grep -q "APP_KEY=base64:" .env; then
-    echo "🔑 Generating application key..."
-    APP_KEY=$(openssl rand -base64 32)
-    sed -i.bak "s|APP_KEY=|APP_KEY=base64:${APP_KEY}|" .env
-    rm -f .env.bak
-    echo "✅ Application key generated"
+if [ -f .env ]; then
+    if ! grep -q "APP_KEY=base64:" .env 2>/dev/null; then
+        echo "🔑 Generating application key..."
+        APP_KEY=$(openssl rand -base64 32)
+        
+        # Use different sed syntax for Linux vs macOS
+        if [[ "$OSTYPE" == "darwin"* ]]; then
+            sed -i '' "s|APP_KEY=.*|APP_KEY=base64:${APP_KEY}|" .env
+        else
+            sed -i "s|APP_KEY=.*|APP_KEY=base64:${APP_KEY}|" .env
+        fi
+        
+        echo "✅ Application key generated"
+    else
+        echo "ℹ️  Application key already set"
+    fi
 else
-    echo "ℹ️  Application key already set"
+    echo "❌ .env file not found!"
+    exit 1
 fi
 
 # Create necessary directories

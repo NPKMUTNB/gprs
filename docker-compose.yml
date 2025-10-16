@@ -7,7 +7,7 @@ services:
     container_name: student-project-repository
     restart: unless-stopped
     ports:
-      - "8000:80"
+      - "80:80"
     volumes:
       - .:/var/www/html
       - ./storage:/var/www/html/storage
@@ -17,7 +17,7 @@ services:
       - APP_ENV=production
       - APP_KEY=${APP_KEY}
       - APP_DEBUG=false
-      - APP_URL=http://localhost:8000
+      - APP_URL=http://139.59.244.163
       - DB_CONNECTION=sqlite
       - DB_DATABASE=/var/www/html/database/database.sqlite
       - SESSION_DRIVER=file

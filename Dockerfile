@@ -51,36 +51,8 @@ RUN mkdir -p /var/www/html/database
 # Expose port 80
 EXPOSE 80
 
-# Create entrypoint script
-RUN echo '#!/bin/bash\n\
-set -e\n\
-\n\
-echo "Installing Composer dependencies..."\n\
-composer install --no-interaction --optimize-autoloader --no-dev\n\
-\n\
-echo "Installing NPM dependencies..."\n\
-npm ci --production\n\
-\n\
-echo "Building assets..."\n\
-npm run build\n\
-\n\
-echo "Setting up database..."\n\
-touch /var/www/html/database/database.sqlite\n\
-chmod 664 /var/www/html/database/database.sqlite\n\
-chown www-data:www-data /var/www/html/database/database.sqlite\n\
-\n\
-echo "Creating storage link..."\n\
-php artisan storage:link || true\n\
-\n\
-echo "Caching configuration..."\n\
-php artisan config:cache\n\
-php artisan route:cache\n\
-php artisan view:cache\n\
-\n\
-echo "Starting Apache..."\n\
-exec apache2-foreground\n\
-' > /usr/local/bin/docker-entrypoint.sh
-
+# Copy entrypoint script
+COPY docker-entrypoint.sh /usr/local/bin/
 RUN chmod +x /usr/local/bin/docker-entrypoint.sh
 
 # Start with entrypoint

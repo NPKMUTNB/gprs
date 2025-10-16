@@ -94,24 +94,32 @@ docker-compose up -d
 
 echo ""
 echo "⏳ Waiting for containers to be ready..."
-sleep 10
+echo "This may take a few minutes on first run..."
 
-echo ""
-echo "📦 Installing Composer dependencies..."
-docker-compose exec -T app composer install --no-interaction --optimize-autoloader --no-dev
+# Wait for container to be healthy
+MAX_WAIT=120
+WAITED=0
+while [ $WAITED -lt $MAX_WAIT ]; do
+    if docker-compose exec -T app php artisan --version > /dev/null 2>&1; then
+        echo "✅ Container is ready!"
+        break
+    fi
+    echo "Waiting... ($WAITED/$MAX_WAIT seconds)"
+    sleep 5
+    WAITED=$((WAITED + 5))
+done
 
-echo ""
-echo "🎨 Building frontend assets..."
-docker-compose exec -T app npm ci --production
-docker-compose exec -T app npm run build
+if [ $WAITED -ge $MAX_WAIT ]; then
+    echo "⚠️  Container took too long to start. Checking logs..."
+    docker-compose logs --tail=50 app
+    echo ""
+    echo "You can continue manually with:"
+    echo "  docker-compose logs -f app"
+    exit 1
+fi
 
 echo ""
 echo "🗄️  Setting up database..."
-# Create database file if it doesn't exist
-docker-compose exec -T app touch database/database.sqlite
-docker-compose exec -T app chmod 664 database/database.sqlite
-docker-compose exec -T app chown www-data:www-data database/database.sqlite
-
 # Run migrations
 echo "Running migrations..."
 docker-compose exec -T app php artisan migrate --force
@@ -133,22 +141,9 @@ if [[ $REPLY =~ ^[Yy]$ ]]; then
 fi
 
 echo ""
-echo "🔗 Creating storage link..."
-docker-compose exec -T app php artisan storage:link
-
+echo "✅ Database setup complete!"
 echo ""
-echo "🧹 Optimizing application..."
-docker-compose exec -T app php artisan config:cache
-docker-compose exec -T app php artisan route:cache
-docker-compose exec -T app php artisan view:cache
-docker-compose exec -T app php artisan optimize
-
-echo ""
-echo "🔒 Setting final permissions..."
-docker-compose exec -T app chown -R www-data:www-data /var/www/html/storage
-docker-compose exec -T app chown -R www-data:www-data /var/www/html/bootstrap/cache
-docker-compose exec -T app chmod -R 775 /var/www/html/storage
-docker-compose exec -T app chmod -R 775 /var/www/html/bootstrap/cache
+echo "ℹ️  Note: Storage link, caching, and permissions are handled by the container automatically."
 
 echo ""
 echo "✅ Deployment complete!"

@@ -8,48 +8,24 @@ echo "=========================================="
 # Wait for a moment to ensure filesystem is ready
 sleep 2
 
-# Check if vendor exists, if not install
+# Verify vendor exists (should be installed during build)
 if [ ! -d "vendor" ] || [ ! -f "vendor/autoload.php" ]; then
-    echo "📦 Installing Composer dependencies..."
-    composer install --no-interaction --optimize-autoloader --no-dev || {
-        echo "⚠️  Composer install failed, trying without --no-dev..."
-        composer install --no-interaction --optimize-autoloader
-    }
-else
-    echo "✅ Composer dependencies already installed"
+    echo "WARNING: Vendor directory missing, installing..."
+    composer install --no-interaction --optimize-autoloader --no-dev
 fi
+
+echo "✅ Composer dependencies ready"
 
 # Generate APP_KEY if not exists
 if [ -z "$APP_KEY" ] || [ "$APP_KEY" = "base64:CHANGEME" ]; then
-    echo "� Genterating application key..."
+    echo "🔑 Generating application key..."
     php artisan key:generate --force
 else
     echo "✅ Application key already set"
 fi
 
-# Check if node_modules exists, if not install
-if [ ! -d "node_modules" ]; then
-    echo "📦 Installing NPM dependencies..."
-    npm ci --production || npm install --production || {
-        echo "⚠️  NPM install failed, trying regular install..."
-        npm install
-    }
-else
-    echo "✅ NPM dependencies already installed"
-fi
-
-# Build assets if needed
-if [ ! -d "public/build" ] || [ -z "$(ls -A public/build 2>/dev/null)" ]; then
-    echo "🎨 Building frontend assets..."
-    npm run build || {
-        echo "⚠️  Asset build failed, continuing anyway..."
-    }
-else
-    echo "✅ Assets already built"
-fi
-
 # Setup database
-echo "�️  Setting tup database..."
+echo "🗄️  Setting up database..."
 if [ ! -f "database/database.sqlite" ]; then
     echo "Creating SQLite database file..."
     touch database/database.sqlite

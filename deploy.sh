@@ -61,30 +61,49 @@ else
     echo -e "${GREEN}✅ Database exists${NC}"
 fi
 
-# Step 6: Generate APP_KEY if needed
+# Step 6: Install dependencies locally (for faster builds)
+echo -e "${YELLOW}� Ihnstalling dependencies...${NC}"
+if [ -f "composer.json" ]; then
+    composer install --no-interaction --optimize-autoloader --no-dev 2>/dev/null || echo "Composer install will happen in container"
+fi
+if [ -f "package.json" ]; then
+    npm ci --production 2>/dev/null || npm install --production 2>/dev/null || echo "NPM install will happen in container"
+fi
+
+# Step 7: Build assets locally (for faster builds)
+echo -e "${YELLOW}�️ Building assets...${NC}"
+if [ -d "node_modules" ]; then
+    npm run build 2>/dev/null || echo "Asset build will happen in container"
+fi
+
+# Step 8: Generate APP_KEY if needed
 echo -e "${YELLOW}🔑 Checking APP_KEY...${NC}"
 if ! grep -q "APP_KEY=base64:" .env 2>/dev/null; then
-    php artisan key:generate --force 2>/dev/null || echo "Will generate in container"
+    if [ -f "vendor/autoload.php" ]; then
+        php artisan key:generate --force 2>/dev/null || echo "Will generate in container"
+    else
+        echo "Will generate in container"
+    fi
     check_status "APP_KEY checked"
 else
     echo -e "${GREEN}✅ APP_KEY exists${NC}"
 fi
 
-# Step 7: Build Docker image
+# Step 9: Build Docker image
 echo -e "${YELLOW}🏗️  Building Docker image...${NC}"
 docker-compose build --no-cache
 check_status "Docker image built"
 
-# Step 8: Start containers
+# Step 10: Start containers
 echo -e "${YELLOW}🚀 Starting containers...${NC}"
 docker-compose up -d
 check_status "Containers started"
 
-# Step 9: Wait for container to be ready
+# Step 11: Wait for container to be ready
 echo -e "${YELLOW}⏳ Waiting for container to be ready...${NC}"
 sleep 10
 
-# Step 10: Check container status
+# Step 12: Check container status
 echo -e "${YELLOW}🔍 Checking container status...${NC}"
 if docker ps | grep -q student-project-repository; then
     echo -e "${GREEN}✅ Container is running${NC}"
@@ -95,7 +114,7 @@ else
     exit 1
 fi
 
-# Step 11: Run post-deployment commands
+# Step 13: Run post-deployment commands
 echo -e "${YELLOW}🔧 Running post-deployment commands...${NC}"
 
 # Generate key if not exists
@@ -132,7 +151,7 @@ docker exec student-project-repository chown -R www-data:www-data storage bootst
 docker exec student-project-repository chmod -R 775 storage bootstrap/cache database 2>/dev/null || true
 check_status "Permissions set in container"
 
-# Step 12: Health check
+# Step 14: Health check
 echo -e "${YELLOW}🏥 Running health check...${NC}"
 sleep 5
 HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:8000 2>/dev/null || echo "000")
